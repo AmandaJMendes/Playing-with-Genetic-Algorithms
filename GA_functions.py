@@ -8,20 +8,42 @@ def initialize(population_size, chromossome_dim, data_type, min_value, max_value
     else:
         raise Excpetion(f"Unsupported data type {data_type}")
 
-def evaluate(population, target):
+def evaluate_fitness(population, target):
     return np.abs(target-np.sum(population, axis = 1))
 
-def roulette_selection(population, proabilities):
-    parents_idx  = np.random.choice(population.shape[0], size = population.shape[0],
+def roulette_selection(population, proabilities, parents_size):
+    parents_idx  = np.random.choice(population.shape[0], size = parents_size,
                                     replace = True, p = proabilities)
     parents      = population[parents_idx] 
     return parents
 
-def select(population, scores, mode = "max", selection_algorithm = roulette_selection):
+def select(population, scores, elite_p = 0.0, random_p = 0.0, mode = "max", selection_algorithm = roulette_selection):
+    original_population = population.copy()
+    elite_length    = int(population.shape[0]*elite_p)
+    random_length   = 0
+    if elite_p:  
+        if mode == "min":
+            elite_idx, population_idx = np.split(np.argpartition(scores, elite_length), [elite_length])
+        else:
+            population_idx, elite_idx = np.split(np.argpartition(scores, -elite_length), [-elite_length])
+        population = original_population[population_idx]
+        elite      = original_population[elite_idx]
+    if random_p:
+        random = population[np.random.uniform(size = len(population))<random_p]
+        random_length = len(random)
+
     scores = scores if mode == "max" else scores.max()-scores+scores.min()
     normalized_scores = normalize_fitness(scores)
-    parents = selection_algorithm(population, normalized_scores)
-    return parents
+
+    selected_parents = selection_algorithm(original_population, normalized_scores,
+                                           len(original_population)-(elite_length+random_length))
+
+    all_parents = selected_parents
+    if elite_length:
+        all_parents = np.concatenate([all_parents, elite])
+    if random_length:
+        all_parents = np.concatenate([all_parents, random])
+    return all_parents
 
 def normalize_fitness(scores):
     return (scores+1E-10)/(scores+1E-10).sum()
@@ -53,13 +75,12 @@ def mutate(parents, p, min_value, max_value):
     return []
 
 if __name__ == "__main__":
-    initial_population = initialize(100, 1000, int, -5, 5)
+    initial_population = initialize(100, 30, float, -5, 100)
     offspring = initial_population
-    for i in range(800):
-        fitness = evaluate(offspring, 723)
-        print(i ,fitness.mean())
-        selected = select(offspring, fitness, mode = "min")
-        offspring = one_point_crossover(selected, 0.008, -5, 5)
+    for i in range(3000):
+        fitness = evaluate_fitness(offspring, 3700)
+        selected = select(offspring, fitness, 0.01, 0.9, mode = "max")
+        offspring = one_point_crossover(selected, 0.01, -5, 1000)
     print(offspring.sum(axis=1))
     print((offspring==offspring[0, :]).all())
 
