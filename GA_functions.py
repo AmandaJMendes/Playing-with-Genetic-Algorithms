@@ -75,14 +75,16 @@ def mutate(parents, p, min_value, max_value):
     return []
 
 if __name__ == "__main__":
-    initial_population = initialize(100, 30, float, -5, 100)
+    initial_population = initialize(100, 10, float, -5, 100)
     offspring = initial_population
-    for i in range(3000):
+    for i in range(1000):
         fitness = evaluate_fitness(offspring, 3700)
-        selected = select(offspring, fitness, 0.01, 0.9, mode = "max")
+        selected = select(offspring, fitness, 0.1, 0.2, mode = "min")
         offspring = one_point_crossover(selected, 0.01, -5, 1000)
-    print(offspring.sum(axis=1))
-    print((offspring==offspring[0, :]).all())
+    solutions = np.unique(offspring, axis = 0, return_counts = True)
+    for solution, count in zip(solutions[0], solutions[1]):
+        print(solution, ' | Occurences: ', count, ' | Sum: ', solution.sum())
+
 
 
 
