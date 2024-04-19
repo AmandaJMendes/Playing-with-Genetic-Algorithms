@@ -69,23 +69,34 @@ def mutate(population, mutation_prob, min_value, max_value):
     return population
 
 if __name__ == "__main__":
-    initial_population = initialize(200, 10, float, -5, 1000)
-    offspring = initial_population
-    for i in range(10000):
-        fitness = evaluate_fitness(offspring, 3700)
-        selected = select(offspring, fitness, 0.1, 0.01, mode = "min")
+    import matplotlib.pyplot as plt 
+
+    POPULATION_SIZE = 100       # Number of individuals in each generation 
+    CHRMOSSOME_SIZE = 10        # Number of gens in each individual
+    MIN, MAX        = -10, 1000 # Range 
+    DTYPE           = float     # Either float or int
+    N_GENERATIONS   = 800       # Number of generations / epochs
+    TARGET          = 3700      # Target sum
+    ELITE_P         = 0.1       # Float in range [0, 1]: percentage of the population selected through elitism
+    RANDOM_RATE     = 0.001     # Chance of selecting an individual that was not selected through elitism
+    MUTATION_RATE   = 0.01      # Chance of mutating each individual
+
+    initial_population = initialize(POPULATION_SIZE, CHRMOSSOME_SIZE, DTYPE, MIN, MAX)
+    
+    offspring   = initial_population
+    avg_fitness = []
+    for i in range(N_GENERATIONS):
+        fitness   = evaluate_fitness(offspring, TARGET)
+        selected  = select(offspring, fitness, ELITE_P, RANDOM_RATE, "min", roulette_selection)
         offspring = one_point_crossover(selected)
-        offspring = mutate(offspring, 0.01, -5, 1000)
+        offspring = mutate(offspring, MUTATION_RATE, MIN, MAX)
+        avg_fitness.append(fitness.mean())
+    final_fitness = evaluate_fitness(offspring, TARGET).mean()
+    avg_fitness.append(final_fitness)
+
     solutions = np.unique(offspring, axis = 0, return_counts = True)
     for solution, count in zip(solutions[0], solutions[1]):
         print(solution, ' | Occurences: ', count, ' | Sum: ', solution.sum())
 
-
-
-
-    
-
-
-
-
-
+    plt.plot(list(range(N_GENERATIONS+1)), avg_fitness)
+    plt.show()
